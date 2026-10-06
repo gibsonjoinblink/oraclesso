@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Oracle Fusion Cloud HCM</title>
+<style>
+/* Redwood-style tokens (Oracle Fusion, light) */
+:root{
+  --oracle:#C74634;
+  --brand:#C74634;
+  --ink:#312D2A;--ink-2:#5F5955;--ink-3:#8B8480;
+  --bg:#FBF9F8;--surface:#FFFFFF;--surface-2:#F5F3F1;--line:#E4E1DD;
+  --nav:#201E1C;
+  --ok:#2E7D32;--ok-bg:#EAF4EA;--warn:#A85D00;--warn-bg:#FFF4E4;--info:#1B5C9E;--info-bg:#E9F1FA;
+  --r:6px;
+  --font:"Oracle Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left}
+input,select,textarea{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+svg{display:block;flex:none}
+[hidden]{display:none!important}
+h1,h2,h3,p{margin:0}
+
+/* ---------- SSO handoff ---------- */
+.sso{position:fixed;inset:0;z-index:50;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;transition:opacity .45s ease}
+.sso.hide{opacity:0;pointer-events:none}
+.wm{display:flex;align-items:center;gap:10px}
+.wm .o{font-weight:800;font-size:26px;letter-spacing:1.5px;color:var(--oracle);text-transform:uppercase}
+.wm .f{font-size:14px;color:var(--ink-2);letter-spacing:.2px}
+.sso-status{font-size:15px;color:var(--ink-2);min-height:22px}
+.sso-sub{font-size:13px;color:var(--ink-3)}
+.bar{width:200px;height:3px;border-radius:3px;background:var(--line);overflow:hidden;position:relative}
+.bar::after{content:"";position:absolute;left:-40%;top:0;height:100%;width:40%;border-radius:3px;background:var(--oracle);animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{left:-40%}100%{left:100%}}
+.sso .done{display:none;align-items:center;gap:10px;color:var(--ok);font-weight:600;font-size:15px}
+.sso.ok .bar,.sso.ok .sso-status{display:none}
+.sso.ok .done{display:flex}
+.check{width:22px;height:22px;border-radius:50%;background:var(--ok);display:grid;place-items:center;animation:pop .3s cubic-bezier(.2,1.4,.5,1)}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+.sso-foot{position:absolute;bottom:28px;left:0;right:0;font-size:12px;color:var(--ink-3)}
+
+/* ---------- Global header (dark Redwood bar) ---------- */
+.gh{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;height:52px;background:var(--nav);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 12px}
+.gh-left{display:flex;align-items:center;gap:8px;min-width:0}
+.gh .o{font-weight:800;font-size:17px;letter-spacing:1.2px;color:#fff;text-transform:uppercase}
+.gh .o b{color:var(--oracle);font-weight:800}
+.gh-co{font-size:12px;color:rgba(255,255,255,.7);padding-left:8px;border-left:1px solid rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.gh-right{display:flex;align-items:center;gap:2px}
+.ib{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;position:relative}
+.ib:active{background:rgba(255,255,255,.12)}
+.badge{position:absolute;top:7px;right:7px;min-width:16px;height:16px;border-radius:8px;background:var(--oracle);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px;border:2px solid var(--nav)}
+.avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;background:#D9D4CF}
+.avatar.init{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ink);background:#E7E2DC}
+.gh.sub{background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);padding-left:4px}
+.gh.sub .ib{color:var(--ink)}
+.gh.sub .ttl{font-size:17px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- Views ---------- */
+.view{display:none;max-width:560px;margin:0 auto;padding-bottom:40px;animation:in .25s ease}
+.view.on{display:block}
+@keyframes in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+.view.back{animation:inb .25s ease}
+@keyframes inb{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+
+/* welcome band */
+.welcome{background:var(--surface);border-bottom:1px solid var(--line);padding:22px 16px 0}
+.welcome h1{font-size:26px;font-weight:600;letter-spacing:-.3px;line-height:1.2}
+.welcome p{margin-top:4px;font-size:13px;color:var(--ink-2)}
+.ptabs{display:flex;gap:22px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.ptabs::-webkit-scrollbar{display:none}
+.ptabs button{flex:none;padding:10px 0 12px;font-size:14px;font-weight:600;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
+.ptabs button.on{color:var(--ink);border-color:var(--oracle)}
+
+.sec{padding:20px 16px 0}
+.sec h2{font-size:16px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+.sec h2 button{font-size:13px;font-weight:600;color:var(--info)}
+
+/* quick actions list (Redwood: text list with chevrons) */
+.qa{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.qa button{width:100%;display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.qa button:last-child{border-bottom:0}
+.qa button:active{background:var(--surface-2)}
+.qa .ic{width:34px;height:34px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;color:var(--ink)}
+.qa .chev{margin-left:auto;color:var(--ink-3)}
+.qa .sub{display:block;font-size:12px;color:var(--ink-2);margin-top:1px}
+
+/* apps grid */
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.apps button{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center}
+.apps button:active{background:var(--surface-2)}
+.apps .tile{width:46px;height:46px;border-radius:10px;display:grid;place-items:center;color:#fff}
+.apps span{font-size:12px;line-height:1.25;color:var(--ink)}
+
+/* things to finish */
+.todo{display:flex;flex-direction:column;gap:10px}
+.todo button{width:100%;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--oracle);border-radius:var(--r);padding:12px 14px}
+.todo button.ok{border-left-color:var(--ok)}
+.todo button.info{border-left-color:var(--info)}
+.todo .k{font-size:12px;color:var(--ink-2);margin-bottom:3px}
+.todo h3{font-size:15px;font-weight:600}
+.todo p{font-size:13px;color:var(--ink-2);margin-top:3px;line-height:1.4}
+
+/* news */
+.news{display:flex;flex-direction:column;gap:10px}
+.news button{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;gap:12px;align-items:stretch}
+.news .img{flex:none;width:96px;background:linear-gradient(135deg,#2C5F8A,#5A9BD3)}
+.news .img.b{background:linear-gradient(135deg,#6B3F2A,#C9875D)}
+.news .img.c{background:linear-gradient(135deg,#3C6E47,#86C38F)}
+.news .t{padding:12px 12px 12px 0;flex:1}
+.news h3{font-size:14px;font-weight:600;line-height:1.3}
+.news p{font-size:12px;color:var(--ink-2);margin-top:4px;line-height:1.4}
+
+/* generic card + list */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card+.card{margin-top:10px}
+.lst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{width:100%;display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:active{background:var(--surface-2)}
+.row .m{flex:1;min-width:0}
+.row h3{font-size:14px;font-weight:600}
+.row p{font-size:12px;color:var(--ink-2);margin-top:2px}
+.row .amt{font-size:15px;font-weight:600;white-space:nowrap}
+.chev{color:var(--ink-3)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px}
+.pill.ok{color:var(--ok);background:var(--ok-bg)}
+.pill.warn{color:var(--warn);background:var(--warn-bg)}
+.pill.info{color:var(--info);background:var(--info-bg)}
+.btn{height:40px;padding:0 18px;border-radius:4px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-p{background:var(--ink);color:#fff;width:100%}
+.btn-p:active{background:#000}
+.btn-o{border:1px solid var(--ink);color:var(--ink);width:100%}
+.btns{display:flex;gap:10px;margin-top:16px}
+
+/* balances */
+.bal{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bal div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.bal b{display:block;font-size:24px;font-weight:600;letter-spacing:-.3px}
+.bal small{display:block;font-size:12px;color:var(--ink-2);margin-top:2px}
+
+/* form (Redwood: label above, boxed inputs) */
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;color:var(--ink-2);margin-bottom:6px}
+.fld .in{height:44px;border:1px solid #9B948F;border-radius:4px;background:#fff;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:15px}
+.fld .in.ta{height:auto;min-height:72px;align-items:flex-start;padding:10px 12px;color:var(--ink-3)}
+.fld .in input,.fld .in select{border:0;outline:0;background:transparent;width:100%;height:100%;padding:0}
+.fld .in select{appearance:none;-webkit-appearance:none}
+.hint{font-size:12px;color:var(--ink-2);margin-top:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.seg button{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* payslip detail */
+.ps-head{text-align:center;padding:6px 0 14px}
+.ps-head b{display:block;font-size:34px;font-weight:600;letter-spacing:-.5px}
+.ps-head small{display:block;font-size:13px;color:var(--ink-2);margin-top:4px}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv:last-child{border-bottom:0}
+.kv span:last-child{font-weight:600}
+.kv.tot{font-weight:600;border-top:2px solid var(--ink);border-bottom:0;margin-top:4px}
+.kv.tot span{font-weight:600}
+
+/* learning */
+.lrn{display:flex;flex-direction:column;gap:10px}
+.lrn button{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-align:left}
+.lrn .hero{height:92px;background:linear-gradient(135deg,#1F4E79,#5B9BD5);position:relative}
+.lrn .hero.b{background:linear-gradient(135deg,#7A3E2A,#D7905F)}
+.lrn .hero.c{background:linear-gradient(135deg,#2E5D3A,#8CC59A)}
+.lrn .hero.d{background:linear-gradient(135deg,#4A3A7A,#9A8AD0)}
+.lrn .hero .pill{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.95)}
+.lrn .b{padding:12px 14px}
+.lrn h3{font-size:14px;font-weight:600;line-height:1.3}
+.lrn p{font-size:12px;color:var(--ink-2);margin-top:4px}
+.prog{height:5px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ok);border-radius:3px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;max-width:92vw;z-index:40}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* bottom nav (Redwood responsive shell) */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px))}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--ink-2);width:64px}
+.tabs button.on{color:var(--ink);font-weight:600}
+.tabs button.on svg{color:var(--oracle)}
+.view{padding-bottom:88px}
+@media (prefers-reduced-motion:reduce){.view{animation:none}.bar::after{animation-duration:2s}}
+</style>
+</head>
+<body>
+
+<!-- ===================== SSO handoff ===================== -->
+<div class="sso" id="sso" aria-live="polite">
+  <div class="wm"><span class="o">Oracle</span><span class="f">Fusion Cloud HCM</span></div>
+  <div class="bar" aria-hidden="true"></div>
+  <div class="sso-status" id="ssoStatus">Redirecting to your identity provider…</div>
+  <div class="done"><span class="check">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+  </span><span id="ssoDone">Signed in</span></div>
+  <div class="sso-sub" id="ssoSub"></div>
+  <div class="sso-foot">Single sign-on via Blink</div>
+</div>
+
+<!-- ===================== Global header (home) ===================== -->
+<header class="gh" id="ghHome">
+  <div class="gh-left">
+    <span class="o"><b>Oracle</b></span>
+    <span class="gh-co" id="ghCo"></span>
+  </div>
+  <div class="gh-right">
+    <button class="ib" aria-label="Search" data-demo="Search">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="ib" aria-label="Notifications" data-demo="Notifications">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+      <span class="badge">2</span>
+    </button>
+    <button class="ib" aria-label="Profile" data-demo="Profile"><span id="avatarHome"></span></button>
+  </div>
+</header>
+
+<!-- ===================== Sub-page header ===================== -->
+<header class="gh sub" id="ghSub" hidden>
+  <button class="ib" aria-label="Back" id="backBtn">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <span class="ttl" id="subTitle"></span>
+  <button class="ib" aria-label="More" data-demo="Page actions">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+  </button>
+</header>
+
+<!-- ===================== HOME ===================== -->
+<main class="view on" id="v-home">
+  <div class="welcome">
+    <h1 id="greeting">Welcome, Rachel</h1>
+    <p id="dateline"></p>
+    <div class="ptabs">
+      <button class="on">Me</button>
+      <button data-demo="My Team">My Team</button>
+      <button data-demo="Tools">Tools</button>
+      <button data-demo="Others">Others</button>
+    </div>
+  </div>
+
+  <section class="sec">
+    <h2>Quick Actions <button data-demo="Show more quick actions">Show more</button></h2>
+    <div class="qa">
+      <button data-go="absence"><span class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>
+      </span><span>Add Absence<span class="sub">Request time off</span></span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button data-go="pay"><span class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      </span><span>Payslips<span class="sub">View and download</span></span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button data-go="learn"><span class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/></svg>
+      </span><span>My Learning<span class="sub">1 required course due</span></span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button data-demo="Personal Details"><span class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </span><span>Personal Details</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button data-demo="Time Cards"><span class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </span><span>Current Time Card</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Things to Finish</h2>
+    <div class="todo" id="todo"></div>
+  </section>
+
+  <section class="sec">
+    <h2>Apps</h2>
+    <div class="apps" id="apps"></div>
+  </section>
+
+  <section class="sec">
+    <h2>News and Announcements <button data-demo="All announcements">See all</button></h2>
+    <div class="news" id="news"></div>
+  </section>
+</main>
+
+<!-- ===================== ADD ABSENCE ===================== -->
+<main class="view" id="v-absence" data-title="Add Absence">
+  <section class="sec">
+    <div class="bal" id="bal"></div>
+  </section>
+  <section class="sec">
+    <div class="card">
+      <div class="fld"><label>Type</label><div class="in"><select id="absType"><option>Annual Leave</option><option>Sick Leave</option><option>Unpaid Leave</option><option>Compassionate Leave</option></select>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div></div>
+      <div class="fld"><label>Start Date</label><div class="in"><input type="date" id="d1"></div></div>
+      <div class="fld"><label>End Date</label><div class="in"><input type="date" id="d2"></div></div>
+      <div class="fld"><label>Duration</label><div class="seg"><button class="on">Full day</button><button>Half day (AM)</button><button>Half day (PM)</button></div><div class="hint" id="durHint"></div></div>
+      <div class="fld"><label>Comments</label><div class="in ta">Optional</div></div>
+      <div class="fld"><label>Approver</label><div class="in"><span>Daniel Okafor · Operations Manager</span></div></div>
+      <div class="btns"><button class="btn btn-o" data-back>Cancel</button><button class="btn btn-p" id="absSubmit">Submit</button></div>
+    </div>
+  </section>
+  <section class="sec">
+    <h2>Existing Absences</h2>
+    <div class="lst" id="absList"></div>
+  </section>
+</main>
+
+<!-- ===================== PAYSLIPS ===================== -->
+<main class="view" id="v-pay" data-title="Payslips">
+  <section class="sec">
+    <div class="seg"><button class="on">All</button><button data-demo="Filter: this year">This year</button><button data-demo="Filter: last year">Last year</button></div>
+  </section>
+  <section class="sec">
+    <div class="lst" id="payList"></div>
+  </section>
+</main>
+
+<main class="view" id="v-payslip" data-title="Payslip">
+  <section class="sec">
+    <div class="card">
+      <div class="ps-head"><b id="psNet"></b><small id="psPeriod"></small><small>Net pay · paid to account ending 4417</small></div>
+      <div class="kv"><span>Basic salary</span><span id="psBasic"></span></div>
+      <div class="kv"><span>Overtime (6.5 hrs)</span><span id="psOT"></span></div>
+      <div class="kv"><span>Shift allowance</span><span id="psShift"></span></div>
+      <div class="kv tot"><span>Gross pay</span><span id="psGross"></span></div>
+    </div>
+    <div class="card">
+      <div class="kv"><span>Income tax</span><span id="psTax"></span></div>
+      <div class="kv"><span>National insurance</span><span id="psNI"></span></div>
+      <div class="kv"><span>Pension (5%)</span><span id="psPen"></span></div>
+      <div class="kv tot"><span>Total deductions</span><span id="psDed"></span></div>
+    </div>
+    <div class="btns"><button class="btn btn-o" data-demo="Download PDF">Download PDF</button><button class="btn btn-p" data-demo="Share payslip">Share</button></div>
+  </section>
+</main>
+
+<!-- ===================== LEARNING ===================== -->
+<main class="view" id="v-learn" data-title="My Learning">
+  <section class="sec">
+    <div class="seg"><button class="on">Required</button><button data-demo="In progress">In progress</button><button data-demo="Completed">Completed</button><button data-demo="Browse">Browse</button></div>
+  </section>
+  <section class="sec">
+    <div class="lrn" id="lrn"></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Main" id="tabs">
+  <button class="on" data-go="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button data-demo="Me"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Me</button>
+  <button data-demo="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Alerts</button>
+  <button data-demo="Navigator"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Navigator</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===============================================================
+   CONFIG - edit this block (or pass ?company=...&accent=...&skip=1)
+   photo: paste the same base64 data URI used in the SuccessFactors
+   file, or leave "" to show initials.
+   =============================================================== */
+const CONFIG = {
+  firstName: "Rachel",
+  lastName: "Raffles",
+  title: "Operator",
+  company: "",                       // leave blank for generic demos
+  email: "",                         // leave blank to hide on the sign-in screen
+  accent: "#C74634",
+  currency: "£",
+  photo: "",
+  balances: [
+    { value: "14", label: "Annual leave remaining (days)" },
+    { value: "2",  label: "Sick leave taken (days)" }
+  ]
+};
+const q = new URLSearchParams(location.search);
+if (q.get("company")) CONFIG.company = q.get("company");
+if (q.get("accent"))  CONFIG.accent  = "#" + q.get("accent").replace("#","");
+if (q.get("name"))    CONFIG.firstName = q.get("name");
+document.documentElement.style.setProperty("--oracle", CONFIG.accent);
+const co=document.getElementById("ghCo"); co.textContent = CONFIG.company; co.hidden = !CONFIG.company;
+
+/* avatar */
+const av = CONFIG.photo
+  ? `<img class="avatar" src="${CONFIG.photo}" alt="">`
+  : `<span class="avatar init">${CONFIG.firstName[0]}${CONFIG.lastName[0]}</span>`;
+document.getElementById("avatarHome").innerHTML = av;
+
+/* dates */
+const now = new Date();
+const fmt = d => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const fmtL = d => d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const addD = (d,n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+const nextDow = (d,dow) => { const r = new Date(d); r.setDate(r.getDate() + ((dow - r.getDay() + 7) % 7 || 7)); return r; };
+const iso = d => d.toISOString().slice(0,10);
+document.getElementById("greeting").textContent = `Welcome, ${CONFIG.firstName}`;
+document.getElementById("dateline").textContent =
+  now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) + "  ·  " + CONFIG.title + (CONFIG.company ? ", " + CONFIG.company : "");
+
+/* ---- home: things to finish ---- */
+const friday = nextDow(now,5), nextMon = nextDow(now,1);
+document.getElementById("todo").innerHTML = [
+  { cls:"", k:"Time card · due " + fmt(friday), t:"Submit this week's time card", p:"2 shifts still unrecorded.", go:"Time Cards" },
+  { cls:"info", k:"Learning · due in 9 days", t:"Food safety refresher", p:"Required Level 2 certification, about 25 minutes.", go:"learn" },
+  { cls:"ok", k:"Absence · approved", t:"Annual leave " + fmt(nextMon), p:"Approved by Daniel Okafor.", go:"absence" }
+].map(c => `<button class="${c.cls}" ${c.go.length<8?`data-go="${c.go}"`:`data-demo="${c.go}"`}><div class="k">${c.k}</div><h3>${c.t}</h3><p>${c.p}</p></button>`).join("");
+
+/* ---- home: apps grid ---- */
+const ico = {
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  pay:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  book:'<path d="M4 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  star:'<path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6L12 16.6 6.7 19.5l1.1-6L3.4 9.3l6-.8z"/>',
+  doc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  grid:'<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>'
+};
+const svg = p => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+document.getElementById("apps").innerHTML = [
+  { t:"Time and Absences", c:"#1B5C9E", i:"cal", go:"absence" },
+  { t:"Pay", c:"#2E7D32", i:"pay", go:"pay" },
+  { t:"Learning", c:"#7A3E8C", i:"book", go:"learn" },
+  { t:"Personal Information", c:"#A85D00", i:"user" },
+  { t:"Benefits", c:"#B5306B", i:"heart" },
+  { t:"Career and Performance", c:"#C74634", i:"star" },
+  { t:"Document Records", c:"#4E5D6C", i:"doc" },
+  { t:"Help Desk", c:"#0F766E", i:"chat" },
+  { t:"Show More", c:"#8B8480", i:"grid" }
+].map(a => `<button ${a.go?`data-go="${a.go}"`:`data-demo="${a.t}"`}><span class="tile" style="background:${a.c}">${svg(ico[a.i])}</span><span>${a.t}</span></button>`).join("");
+
+/* ---- home: news ---- */
+document.getElementById("news").innerHTML = [
+  { i:"", t:"Welcome our new general managers", p:"Three internal promotions announced across the business." },
+  { i:"b", t:"Benefits enrolment closes " + fmt(nextDow(now,3)), p:"Review your plan options before the window closes." },
+  { i:"c", t:"Q3 service awards", p:"Nominate a colleague who went above and beyond this quarter." }
+].map(n => `<button data-demo="${n.t}"><div class="img ${n.i}"></div><div class="t"><h3>${n.t}</h3><p>${n.p}</p></div></button>`).join("");
+
+/* ---- absence ---- */
+document.getElementById("bal").innerHTML = CONFIG.balances.map(b => `<div><b>${b.value}</b><small>${b.label}</small></div>`).join("");
+const d1 = document.getElementById("d1"), d2 = document.getElementById("d2");
+d1.value = iso(nextDow(addD(now,7),1)); d2.value = iso(addD(new Date(d1.value),4));
+function dur(){ const a=new Date(d1.value), b=new Date(d2.value); let n=0; for(let x=new Date(a); x<=b; x.setDate(x.getDate()+1)) if(x.getDay()%6) n++; document.getElementById("durHint").textContent = n>0 ? `${n} working day${n>1?"s":""} · ${CONFIG.balances[0].value - n} days will remain` : ""; }
+d1.addEventListener("change",dur); d2.addEventListener("change",dur); dur();
+document.querySelectorAll(".seg").forEach(s => s.addEventListener("click", e => { const b=e.target.closest("button"); if(!b||b.dataset.demo) return; s.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); }));
+document.getElementById("absList").innerHTML = [
+  { h:"Annual Leave", p: fmt(nextMon) + " · 1 day", s:"ok", l:"Approved" },
+  { h:"Sick Leave", p: fmt(addD(now,-23)) + " – " + fmt(addD(now,-22)) + " · 2 days", s:"ok", l:"Approved" },
+  { h:"Annual Leave", p: fmt(addD(now,-61)) + " – " + fmt(addD(now,-55)) + " · 5 days", s:"ok", l:"Approved" }
+].map(a => `<button class="row" data-demo="${a.h} ${a.p}"><div class="m"><h3>${a.h}</h3><p>${a.p}</p></div><span class="pill ${a.s}">${a.l}</span></button>`).join("");
+document.getElementById("absSubmit").addEventListener("click", () => {
+  toastMsg("Absence submitted for approval");
+  const l = document.getElementById("absList");
+  l.insertAdjacentHTML("afterbegin", `<button class="row" data-demo="Pending request"><div class="m"><h3>${document.getElementById("absType").value}</h3><p>${fmt(new Date(d1.value))} – ${fmt(new Date(d2.value))}</p></div><span class="pill warn">Awaiting approval</span></button>`);
+  setTimeout(()=>go("home","back"),900);
+});
+
+/* ---- payslips ---- */
+const money = n => CONFIG.currency + n.toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2});
+const slips = [];
+for (let i=0;i<6;i++){ const off = now.getDate()>=28 ? 0 : 1; const d=new Date(now.getFullYear(), now.getMonth()-i-off, 28); const basic=2450, ot=[142.5,98.75,210,0,165,77.5][i], shift=120;
+  const gross=basic+ot+shift, tax=Math.round((gross-1047.5)*0.2*100)/100, ni=Math.round((gross-1048)*0.08*100)/100, pen=Math.round(basic*0.05*100)/100;
+  slips.push({ d, basic, ot, shift, gross, tax, ni, pen, ded:tax+ni+pen, net:gross-tax-ni-pen }); }
+document.getElementById("payList").innerHTML = slips.map((s,i) => `<button class="row" data-slip="${i}"><div class="m"><h3>${s.d.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h3><p>Paid ${fmtL(s.d)} · Monthly</p></div><span class="amt">${money(s.net)}</span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`).join("");
+document.getElementById("payList").addEventListener("click", e => {
+  const b=e.target.closest("[data-slip]"); if(!b) return; const s=slips[b.dataset.slip];
+  const set=(id,v)=>document.getElementById(id).textContent=v;
+  set("psNet",money(s.net)); set("psPeriod", s.d.toLocaleDateString("en-GB",{month:"long",year:"numeric"}) + " · paid " + fmtL(s.d));
+  set("psBasic",money(s.basic)); set("psOT",money(s.ot)); set("psShift",money(s.shift)); set("psGross",money(s.gross));
+  set("psTax","-"+money(s.tax)); set("psNI","-"+money(s.ni)); set("psPen","-"+money(s.pen)); set("psDed","-"+money(s.ded));
+  go("payslip");
+});
+
+/* ---- learning ---- */
+document.getElementById("lrn").innerHTML = [
+  { h:"", pill:"warn", pl:"Due in 9 days", t:"Food Safety Level 2 refresher", p:"Required annually · 25 min · 3 of 6 modules done", pr:50 },
+  { h:"b", pill:"warn", pl:"Due in 21 days", t:"Fire safety and evacuation", p:"Required annually · 15 min", pr:0 },
+  { h:"c", pill:"info", pl:"Assigned", t:"Customer service essentials", p:"Assigned by Daniel Okafor · 40 min", pr:0 },
+  { h:"d", pill:"ok", pl:"Completed", t:"Manual handling", p:"Completed " + fmtL(addD(now,-40)) + " · valid 12 months", pr:100 }
+].map(c => `<button data-demo="${c.t}"><div class="hero ${c.h}"><span class="pill ${c.pill}">${c.pl}</span></div><div class="b"><h3>${c.t}</h3><p>${c.p}</p><div class="prog"><i style="width:${c.pr}%"></i></div></div></button>`).join("");
+
+/* ---- navigation ---- */
+const ghHome=document.getElementById("ghHome"), ghSub=document.getElementById("ghSub"), tabs=document.getElementById("tabs");
+const stack=["home"];
+function go(id, dir){
+  if (dir!=="back") stack.push(id);
+  document.querySelectorAll(".view").forEach(v=>{v.classList.remove("on","back")});
+  const v=document.getElementById("v-"+id); v.classList.add("on"); if(dir==="back") v.classList.add("back");
+  const home = id==="home";
+  ghHome.hidden=!home; ghSub.hidden=home; tabs.style.display = home ? "" : "none";
+  if(!home) document.getElementById("subTitle").textContent = v.dataset.title;
+  window.scrollTo(0,0);
+}
+function back(){ stack.pop(); go(stack[stack.length-1]||"home","back"); if(!stack.length) stack.push("home"); }
+document.getElementById("backBtn").addEventListener("click", back);
+document.addEventListener("click", e => {
+  const g=e.target.closest("[data-go]"); if(g){ g.dataset.go==="home" ? go("home","back") : go(g.dataset.go); return; }
+  if(e.target.closest("[data-back]")) { back(); return; }
+  const d=e.target.closest("[data-demo]"); if(d) toastMsg(d.dataset.demo + " · demo environment");
+});
+
+/* ---- toast ---- */
+const toast=document.getElementById("toast"); let tt;
+function toastMsg(m){ toast.textContent=m; toast.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>toast.classList.remove("show"),1600); }
+
+/* ---- SSO sequence ---- */
+const sso=document.getElementById("sso"), status=document.getElementById("ssoStatus");
+function runSSO(){
+  sso.classList.remove("hide","ok"); document.getElementById("ssoSub").textContent="";
+  status.textContent="Redirecting to your identity provider…";
+  setTimeout(()=>{ status.textContent="Verifying your identity…"; },700);
+  setTimeout(()=>{ sso.classList.add("ok"); document.getElementById("ssoDone").textContent=`Signed in as ${CONFIG.firstName} ${CONFIG.lastName}`; document.getElementById("ssoSub").textContent=CONFIG.email; },1500);
+  setTimeout(()=>{ sso.classList.add("hide"); },2250);
+}
+if (q.get("skip")==="1") sso.classList.add("hide"); else runSSO();
+let taps=0, tapT;
+document.querySelector(".welcome h1").addEventListener("click",()=>{ taps++; clearTimeout(tapT); tapT=setTimeout(()=>taps=0,600); if(taps===3){taps=0; go("home","back"); runSSO();} });
+</script>
+</body>
+</html>
